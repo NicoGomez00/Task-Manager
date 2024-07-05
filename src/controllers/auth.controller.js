@@ -1,62 +1,60 @@
 import User from '../models/user.model.js'
-import bcrypt from 'bcryptjs'
+import bcryptjs from 'bcryptjs'
 import { createAccessToken } from '../libs/jwt.js'
-import jwt from "jsonwebtoken";
-import { TOKEN_SECRET } from '../config.js';
+import jwt from 'jsonwebtoken'
+import { TOKEN_SECRET } from "../config.js";
+import db from '../db.js'
+import { ObjectId } from "mongodb";
+
 
 export const register = async (req , res) => {
     const {username , email , password} = req.body
     try {
-        
-        const userFound = await User.findOne({username})
-        if(userFound)
-            return res.status(400).json(["The username already exists"])
+        let collection = await db.collection('users')
 
-        const emailFound = await User.findOne({email})
-        if(emailFound)
-            return res.status(400).json(["The email already exists"])
+        let userFound = await collection.findOne({username})
+        if(userFound) return res.status(401).json(['Username already exists'])
 
-        //encriptar las password
-        const passwordHash = await bcrypt.hash(password , 10)
+        let emailFound = await collection.findOne({email})
+        if(emailFound) return res.status(401).json(['Email already exists'])
+
+        const hashedPassword = await bcryptjs.hash(password , 8)
 
         const newUser = new User({
-            username,
-            email,
-            password: passwordHash,
+            username: username,
+            email: email,
+            password: hashedPassword
         })
 
-        const userSaved = await newUser.save()
+        const userSaved = await collection.insertOne(newUser)
 
         const token = await createAccessToken({id: userSaved._id})
-
         res.cookie('token' , token)
+
         res.json({
             id: userSaved._id,
             username: userSaved.username,
-            email: userSaved.email,
+            email: userSaved.email
         })
     } catch (error) {
-        res.status(500).json({message: error.message})
+        res.status(500).json({message: error})
     }
-
 }
 
 export const login = async (req , res) => {
-    const { email , password} = req.body
+    const {email , password} = req.body
     try {
+        let collection = await db.collection('users')
 
-        //Verificamos que el usuario exista
-        const userFound = await User.findOne({email})
-        if(!userFound) return res.status(400).json(['User not found'])
-
-
-        //Compara la password
-        const isMatch = await bcrypt.compare(password , userFound.password)
-        if(!isMatch) return res.status(400).json(['Incorrect password'])
+        const userFound = await collection.findOne({email})
+        if(!userFound) return res.status(400).json(["Email doesn't exist"])
+        
+        const passwordMatch = await bcryptjs.compare(password , userFound.password)
+        if(!passwordMatch) return res.status(400).json(["Password Incorrect"])
 
         const token = await createAccessToken({id: userFound._id})
-
         res.cookie('token' , token)
+
         res.json({
             id: userFound._id,
             username: userFound.username,
@@ -65,19 +63,24 @@ export const login = async (req , res) => {
             updatedAt: userFound.updatedAt,
         })
     } catch (error) {
-        res.status(500).json({message: error.message})
+        res.status(500).json({message: error})
     }
 }
 
-export const logout = (req , res) => {
-    res.cookie('token' , '' , {
-        expires: new Date(0)
-    })
-    return res.sendStatus(200)
+export const logout = async ( req , res) => {
+    try {
+        res.cookie('token' , '' , {
+            expires: new Date(0)
+        })
+        return res.sendStatus(200)
+    } catch (error) {
+        res.status(500).json({message: error})
+    }
 }
 
 export const profile = async (req , res) => {
-    const userFound = await User.findById(req.user.id)
+    const taskId = new ObjectId(req.params.id);
+    const userFound = await collection.findById({_id: taskId})
 
     if(!userFound) return res.status(400).json({message: 'User not found'})
     
@@ -90,21 +93,34 @@ export const profile = async (req , res) => {
     })
 }
 
-export const verifyToken = async (req , res) => {
+
+export const verifyToken = async (req, res) => {
     const {token} = req.cookies
 
-    if(!token) return res.status(401).json({message : 'Unauthorized'})
+    // Comprobar si el token está presente
+    if (!token) return res.status(401).json(['Unauthorized']);
 
-    jwt.verify(token , TOKEN_SECRET , async (err , user) => {
-        if(err) return res.status(401).json({message : 'Unauthorized'})
+    try {
+        // Verificar el token
+        const decoded = jwt.verify(token, TOKEN_SECRET);
         
-        const userFound = await User.findById(user.id)
-        if(!userFound) return res.status(401).json({message : 'Unauthorized'})
+        // Obtener la colección de usuarios
+        const collection = await db.collection('users');
         
+        // Buscar el usuario por su ID (decodificado del token)
+        const userFound = await collection.findOne({ _id: new ObjectId(decoded.id) });
+        
+        // Si el usuario no es encontrado
+        if (!userFound) return res.status(401).json(['Unauthorized']);
+        
+        // Devolver la información del usuario
         return res.json({
             id: userFound._id,
             username: userFound.username,
-            email: userFound.email,
-        })
-    })
-}
+            email: userFound.email
+        });
+    } catch (err) {
+        // Si hay algún error en la verificación del token o en la búsqueda del usuario
+        return res.status(401).json(['Unauthorized']);
+    }
+};
