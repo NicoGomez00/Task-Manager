@@ -3,7 +3,7 @@ MERN CRUD
 TASK MANAGER
 
 Backend(NojeJS,ExpressJS,MongoDB,JWT,ZOD,Corse,Bcryptjs):
--Application that allows the creation of tasks with a title, description and date, being able to modify and edit them as desired.
+-Application that allows the creation of tasks with a title, description and date, being able to modify and edit them as desired./n
 -These tasks are connected to a database in the cloud and only the users who created them can access the tasks.
 -Authentication methods are evaluated with a token generation that is stored by cookies
 
