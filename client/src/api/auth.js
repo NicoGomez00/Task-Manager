@@ -24,4 +24,11 @@ export const loginRequest = async (user) => {
     }
 }
 
-export const verifyTokenRequest = async () => axios.get('/verify')
+export const verifyTokenRequest = async (token) => {
+    return await axios.get('/verify', {}, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      withCredentials: true
+    });
+  };

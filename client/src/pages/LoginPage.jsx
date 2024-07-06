@@ -63,7 +63,7 @@ const LoginPage = () => {
           }}/>
           {errors.password && <p className='text-red-500 my-2'>Password is required</p>}
 
-          <Button variant='contained' className='rounded-md' type='submit'>Register</Button>
+          <Button variant='contained' className='rounded-md' type='submit'>Login</Button>
         </Box>
         <Box>
           <Typography sx={{color:'white'}} className='flex gap-x-2 justify-between pt-3 m-1'>

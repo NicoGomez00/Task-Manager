@@ -2,7 +2,11 @@ import Task from "../models/task.model.js";
 import { ObjectId } from "mongodb";
 import db from '../db.js'
 
-const collection = await db.collection("task");
+let collection;
+
+(async () => {
+    collection = await db.collection("task");
+})();
 
 
 export const getTasks = async (req , res) => {
@@ -37,11 +41,11 @@ export const createTask = async (req , res) => {
             title,
             description,
             date,
-            user: req.user.id
+            user: new ObjectId(req.user.id)
         })
     
         const taskSave = await collection.insertOne(task)
-        res.json(taskSave.ops[0]) 
+        res.json(taskSave) 
     } catch (error) {
         res.status(500).json({message: error.message})
     }

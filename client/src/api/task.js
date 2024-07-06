@@ -1,7 +1,13 @@
 import axios from "./axios";
 
-export const getTasksRequest = () => 
-    axios.get('/task')
+export const getTasksRequest = () => {
+    try {
+        return axios.get('/task')
+    } catch (error) {
+        console.error('Error al traer tareas')
+    }
+}
+    
 
 export const getTaskRequest = (id) =>
     axios.get(`/task/${id}`)
